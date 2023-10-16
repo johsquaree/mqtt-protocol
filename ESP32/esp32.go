@@ -1,8 +1,8 @@
-package main
+package mqtt
 
 import (
 	"fmt"
-	"github.com/eclipse/paho.mqtt.golang" 
+	"github.com/eclipse/paho.mqtt.golang"
 	// MQTT istemcisini içe aktarıyoruz
 )
 
@@ -31,10 +31,10 @@ func main() {
 	// MQTT istemcisini yapılandırmak için seçenekleri oluşturuyoruz
 	opts := mqtt.NewClientOptions()
 
-	// MQTT broker adresi ve portunu seçeneklere ekliyoruz 
-	// "tcp://broker_adresi:port_numarası"
-	// "tcp://broker_adresi:879687"
-	opts.AddBroker(fmt.Sprintf("tcp://%s:%d", broker, port))
+	// MQTT broker adresi ve portunu seçeneklere ekliyoruz
+	// "mqtt://broker_adresi:port_numarası"
+	// "mqtt://broker_adresi:879687"
+	opts.AddBroker(fmt.Sprintf("mqtt://%s:%d", broker, port))
 
 	// MQTT istemci kimliği
 	opts.SetClientID("go_mqtt_client")
@@ -57,15 +57,32 @@ func main() {
 		panic(token.Error())
 	}
 
-	// "/forward" adlı MQTT konusuna abone oluyoruz
-	token := client.Subscribe("/forward", 0, messageHandler)
+	// İleri, geri, sağ ve sol komutlarını temsil eden MQTT konuları oluşturuyoruz
+	forwardTopic := "/move/forward"
+	backwardTopic := "/move/backward"
+	clockWiseTopic := "/control/clockwise"
+	counterClockWiseTopic := "/control/counterclockwise"
 
-	// Abonelik işleminin sonucunu yazdırıyoruz
-	if token.Wait() && token.Error() != nil {
-		// panic işlemi anında sonlandırır.
-		panic(token.Error())
-	}
+	// İleri komutuna abone oluyoruz
+	subscribe(client, forwardTopic, 2) // 2 adet ileri komutu
+
+	// Geri komutuna abone oluyoruz
+	subscribe(client, backwardTopic, 4) // 4 adet geri komutu
+
+	// Sağa dönme komutuna abone oluyoruz
+	subscribe(client, clockWiseTopic, 3) // 3 adet sağa dönme komutu
+
+	// Sola dönme komutuna abone oluyoruz
+	subscribe(client, counterClockWiseTopic, 1) // 1 adet sola dönme komutu
 
 	// Sonsuz bir döngüde programı çalışır halde tutmak için kullanılır
 	select {}
+}
+
+func subscribe(client mqtt.Client, topic string, count int) {
+	for i := 0; i < count; i++ {
+		token := client.Subscribe(fmt.Sprintf("%s/%d", topic, i), 0, messageHandler)
+		token.Wait()
+		fmt.Printf("Abone olundu: %s/%d\n", topic, i)
+	}
 }
