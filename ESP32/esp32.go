@@ -5,14 +5,14 @@ import (
 	"github.com/eclipse/paho.mqtt.golang"
 )
 
-var MQTTClient mqtt.Client // Global MQTT istemci değişkeni
+var MQTTClient mqtt.Client // Global MQTT client variable
 
 func connectHandler(client mqtt.Client) {
-    fmt.Println("Bağlandı")
+    fmt.Println("Connected") // Connection handler function
 }
 
 func connectLostHandler(client mqtt.Client, err error) {
-    fmt.Printf("Bağlanti kaybedildi: %v\n", err)
+    fmt.Printf("Connection lost: %v\n", err) // Connection lost handler function
 }
 
 func messageHandler(client mqtt.Client, message mqtt.Message) {
@@ -21,7 +21,7 @@ func messageHandler(client mqtt.Client, message mqtt.Message) {
 }
 
 func Publish(message string) {
-    token := MQTTClient.Publish("/movements", 0, false, message)
+    token := MQTTClient.Publish("/movements", 0, false, message) // Publish a message to the "/movements" topic
     token.Wait()
     if token.Error() != nil {
         fmt.Println(token.Error())
@@ -47,17 +47,16 @@ func InitializeMQTTClient() {
 }
 
 func main() {
-    // MQTT istemcisini başlat
+    // Initialize the MQTT client
     InitializeMQTTClient()
 
-    // MQTT istemcisine abone ol
+    // Subscribe to the MQTT client
     token := MQTTClient.Subscribe("/movement", 0, func(client mqtt.Client, message mqtt.Message) {
         fmt.Printf("Received message on topic %s: %s\n", message.Topic(), message.Payload())
-        // Hareket komutunu burada işleyin
+        // Handle the movement command here
     })
     token.Wait()
 
-    // Hareket komutunu yayınla
+    // Publish a movement command
     Publish("forward")
-
 }
