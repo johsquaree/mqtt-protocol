@@ -1,9 +1,11 @@
-module github.com/johsquaree/goo
+module mqtt-furkan
 
 go 1.21.0
 
-require (
-    
-github.com/go-audio/audio@v0.0.0-20220107065405-6ed2b5bb2a8b
+require github.com/eclipse/paho.mqtt.golang v1.4.3
 
+require (
+	github.com/gorilla/websocket v1.5.0 // indirect
+	golang.org/x/net v0.8.0 // indirect
+	golang.org/x/sync v0.1.0 // indirect
 )
