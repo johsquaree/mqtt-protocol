@@ -5,26 +5,27 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/eclipse/paho.mqtt.golang"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-var MQTTClient mqtt.Client // Global MQTT client variable
+var MQTTClient mqtt.Client
 
 func connectHandler(client mqtt.Client) {
-	fmt.Println("Connected") // Connection handler function
+	fmt.Println("Connected")
 }
 
 func connectLostHandler(client mqtt.Client, err error) {
-	fmt.Printf("Connection lost: %v\n", err) // Connection lost handler function
+	fmt.Printf("Connection lost: %v\n", err)
 }
 
 func Publish(message string) {
-	token := MQTTClient.Publish("/movements", 0, false, message) // Publish a message to the "/movements" topic
+	token := MQTTClient.Publish("/movements", 0, false, message)
 	token.Wait()
 	if token.Error() != nil {
 		fmt.Println(token.Error())
 	}
 }
+
 func messagePubHandler(client mqtt.Client, message mqtt.Message) {
 	fmt.Printf("Published message on topic: %s\n", message.Topic())
 	fmt.Printf("Message: %s\n", message.Payload())
@@ -53,46 +54,45 @@ func InitializeMQTTClient() {
 func messageHandler(client mqtt.Client, message mqtt.Message) {
 	fmt.Printf("Received message on topic: %s\n", message.Topic())
 	fmt.Printf("Message: %s\n", message.Payload())
-
 	// Send the payload message to an HTTP channel
 	payload := message.Payload()
 	sendPayloadToHTTPChannel(payload)
 }
 
-// sendPayloadToHTTPChannel adlı bir işlev tanımlanır.
 // Bu işlev, bir dizeyi HTTP kanalına POST isteği olarak göndermek için kullanılır. Olası hatalar hata kontrolü ile ele alınır.
 func sendPayloadToHTTPChannel(payload []byte) {
 	// Replace 'http_channel_url' with the actual URL of your HTTP channel
 	url := "http://http_channel_url"
-
 	// Convert payload to string
 	payloadStr := string(payload)
-
-	// Create a POST request with the payload
+	// http.Post işlevi kullanılarak HTTP POST isteği oluşturulur.
+    // İsteğin gönderileceği URL, veri türü ("application/json") ve gönderilecek veri içeriği ("strings.NewReader(payloadStr)") belirtilir.
 	resp, err := http.Post(url, "application/json", strings.NewReader(payloadStr))
 	if err != nil {
 		fmt.Println("Error sending payload to HTTP channel:", err)
 		return
 	}
+    // Yanıtın (response) sızdırmadan kapatılması için defer kullanılır.?
 	defer resp.Body.Close()
 
+    //HTTP yanıtının durumu, resp.StatusCode ile kontrol edilir. 
+    //Eğer yanıtın durumu 200 (HTTP OK) değilse, bir hata mesajı yazdırılır. HTTP isteği başarısız olduğunda bu durumda bilgilendirilirsiniz
 	if resp.StatusCode != http.StatusOK {
 		fmt.Printf("HTTP request failed with status code: %d\n", resp.StatusCode)
 	}
 }
-
-
 func main() {
 	// Initialize the MQTT client
 	InitializeMQTTClient()
-
 	// Subscribe to the MQTT client
-	token := MQTTClient.Subscribe("/movement", 2, func(client mqtt.Client, message mqtt.Message) {
+	//topic string: Bu parametre, abone olunacak MQTT konusunu temsil eder.
+	// qos 2: Mesajlar yalnızca bir kez teslim edilir ve herhangi bir tekrarlama veya kaybolma olasılığı yoktur.
+	// MQTT istemcisi /movemente abone oluyor ve yeni mesajlar geldiğinde func(client mqtt.Client, message mqtt.Message) işlevi çağrılıyor.
+	token := MQTTClient.Subscribe("/movement", byte(2), func(client mqtt.Client, message mqtt.Message) {
 		fmt.Printf("Received message on topic %s: %s\n", message.Topic(), message.Payload())
-		// Handle the movement command here
+		// Received message on topic /movement: This is the message payload.
 	})
 	token.Wait()
-
 	// Publish a movement command
 	Publish("forward")
 }
